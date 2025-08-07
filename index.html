@@ -1,432 +1,372 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>स्वतंत्रता दिवस की शुभकामनाएँ</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;700&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Aviator Game</title>
+    <!-- QR कोड बनाने के लिए एक विश्वसनीय लाइब्रेरी जोड़ी गई -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-    :root {
-      --saffron: #FF9933;
-      --white: #FFFFFF;
-      --green: #138808;
-      --bg1: #24243e;
-      --bg2: #302b63;
-      --bg3: #0f0c29;
-    }
+    <!-- === FIREBASE SDKs === -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <!-- ======================= -->
 
-    * { box-sizing: border-box; }
+    <style>
+        /* CSS स्टाइलिंग */
+        * { box-sizing: border-box; }
+        html, body { height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #101018; color: #f1f1f1; display: flex; justify-content: center; align-items: center; }
+        #game-container { position: relative; width: 98vw; height: 95vh; max-width: 1400px; max-height: 850px; background: #1a1a2e; padding: 15px; display: flex; flex-direction: column; text-align: center; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+        #withdrawal-container, #wallet-container {  position: absolute; top: 15px; background: #2a2a4e; padding: 4px 10px; border-radius: 15px;  display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 255, 255, 0.1); z-index: 10; cursor: pointer; }
+        #withdrawal-container { left: 15px; }
+        #wallet-container { right: 15px; cursor: pointer; }
+        h1 { margin: 0 0 10px 0; font-size: 1.2em; }
+        #game-screen { position: relative; height: 40vh; /* ऊंचाई थोड़ी कम की गई */ width: 100%; background: #2a2a4e; border-radius: 15px; overflow: hidden; margin-bottom: 15px; }
+        #airplane-container { position: absolute; bottom: 5px; left: 10px; font-size: 30px; transition: all 0.05s linear; z-index: 2; }
+        #multiplier { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 4em; font-weight: bold; color: #ffffff; width: 100%; }
+        
+        /* === यह बदलाव किया गया है === */
+        #controls { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            flex: 1; /* यह सुनिश्चित करेगा कि यह बची हुई जगह ले ले */
+            min-height: 0; /* फ्लेक्सबॉक्स की एक सामान्य समस्या को ठीक करने के लिए */
+        }
+        /* ============================ */
 
-    body {
-      margin: 0;
-      font-family: 'Teko', sans-serif;
-      background: linear-gradient(to right, var(--bg1), var(--bg2), var(--bg3));
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-      overflow-x: hidden;
-      color: var(--white);
-    }
-
-    #fireworks-canvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
-
-    .container {
-      position: relative;
-      z-index: 2;
-      background-color: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 30px;
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-      text-align: center;
-      max-width: 500px;
-      width: 100%;
-    }
-
-    #wishingImage {
-      max-width: 80%;
-      height: auto;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      animation: floatImage 4s ease-in-out infinite;
-    }
-
-    #greetingSection h1 {
-      font-size: 2.8rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin: 0;
-      animation: textGlow 1.5s infinite alternate;
-    }
-
-    #greetingSection h1 span {
-      color: var(--saffron);
-      display: block;
-      font-size: 2rem;
-    }
-
-    #greetingSection p {
-      font-size: 1.5rem;
-      color: var(--green);
-      font-weight: bold;
-      text-shadow: 0 0 5px var(--white);
-      margin: 6px 0 0;
-    }
-
-    #createWishSection {
-      margin-top: 25px;
-    }
-
-    #createWishSection h2 {
-      font-size: 2rem;
-      margin-bottom: 15px;
-    }
-
-    #yourName {
-      width: 80%;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 1.2rem;
-      font-family: 'Teko', sans-serif;
-      background-color: rgba(255, 255, 255, 0.85);
-      color: #333;
-      outline: none;
-    }
-
-    .input-wrapper {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    #feedback {
-      color: #ffe082;
-      font-size: 0.9rem;
-      min-height: 1.2em;
-    }
-
-    .share-row {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    #whatsappShareBtn {
-      width: 75%;
-      padding: 10px 14px;
-      background-color: #25D366;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1.3rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.2s, background-color 0.2s;
-      text-transform: uppercase;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #whatsappShareBtn:hover {
-      background-color: #1EBE57;
-      transform: scale(1.05);
-    }
-
-    #whatsappShareBtn svg {
-      width: 26px;
-      height: 26px;
-      margin-right: 10px;
-      flex-shrink: 0;
-    }
-
-    .ad-container {
-      margin-top: 20px;
-      position: relative;
-      z-index: 10;
-      width: 100%;
-      max-width: 468px;
-      min-height: 60px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 8px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 0.8rem;
-    }
-
-    #audioFallback {
-      margin-top: 15px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-    }
-
-    #playAudioBtn {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      color: white;
-      font-weight: bold;
-    }
-
-    @keyframes floatImage {
-      0% { transform: translateY(0px); }
-      50% { transform: translateY(-15px); }
-      100% { transform: translateY(0px); }
-    }
-
-    @keyframes textGlow {
-      from {
-        text-shadow: 0 0 10px var(--white), 0 0 20px var(--white), 0 0 30px var(--green);
-      }
-      to {
-        text-shadow: 0 0 20px var(--white), 0 0 30px var(--saffron), 0 0 40px var(--saffron);
-      }
-    }
-
-    @media (max-width: 600px) {
-      #greetingSection h1 { font-size: 2.2rem; }
-      #greetingSection h1 span { font-size: 1.6rem; }
-      #greetingSection p { font-size: 1.2rem; }
-    }
-  </style>
+        .betting-panel { background: #2a2a4e; padding: 15px; border-radius: 10px; display: flex; flex-direction: column; }
+        .quick-bet-container { display: flex; gap: 5px; margin-bottom: 8px; }
+        .quick-bet-btn { background-color: #3a3a5e; border: 1px solid rgba(255, 255, 255, 0.2); padding: 5px; font-size: 12px; flex-grow: 1; border-radius: 4px; color: white; cursor: pointer; }
+        .control-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        input[type="number"], input[type="text"] { padding: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background-color: #1a1a2e; color: white; border-radius: 4px; width: 100%; text-align: center; }
+        .action-button { width: 100%; padding: 12px 5px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
+        .bet-button { background-color: #28a745; color: white;}
+        .bet-button:disabled { background-color: #5a6268; }
+        .cashout-button { background-color: #ffc107; color: #212529; display: none; }
+        .panel-message { margin-top: 10px; font-size: 1.1em; font-weight: bold; color: #d1d5db; min-height: 25px; }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #2a2a4e; margin: 10% auto; padding: 25px; border: 1px solid rgba(255,255,255,0.2); width: 90%; max-width: 450px; border-radius: 15px; text-align: center; position: relative; }
+        .close-button { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .modal-content input { margin-bottom: 15px; }
+        .modal-content button { width: 100%; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .modal-content h2 { margin-top: 0; margin-bottom: 20px;}
+        .modal-content p.instruction { margin-top: 0; margin-bottom: 20px; font-size: 14px; color: #aaa; }
+        .quick-deposit-container { margin-bottom: 15px; }
+        .quick-deposit-row { display: flex; gap: 10px; }
+        .quick-deposit-row:first-child { margin-bottom: 10px; }
+        .quick-deposit-btn { background-color: #3a3a5e; border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px; font-size: 14px; flex-grow: 1; border-radius: 4px; color: white; cursor: pointer; }
+        .quick-deposit-btn.small-btn { flex-grow: 0.1; }
+        #pending-requests-container { margin-top: 15px; background: #101018; border-radius: 10px; padding: 10px; height: 120px; overflow-y: auto; text-align: left; border: 1px solid rgba(255, 255, 255, 0.1); }
+        #requests-list { list-style: none; padding: 0; margin: 0; }
+        .request-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #3a3a5e; font-size: 14px; }
+        .request-item:last-child { border-bottom: none; }
+        .request-details { flex-grow: 1; display: flex; align-items: center; gap: 8px;}
+        .request-type { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; }
+        .request-type.deposit { background-color: #28a745; }
+        .request-type.withdrawal { background-color: #007bff; }
+        .request-status { font-size: 12px; font-weight: bold; color: #ffc107; }
+        #withdrawal-message { min-height: 20px; margin-top: 10px; color: #28a745; font-weight: bold; }
+        #qrcode { display: flex; justify-content: center; padding: 20px; background: white; border-radius: 10px; }
+    </style>
 </head>
 <body>
-  <canvas id="fireworks-canvas"></canvas>
-
-  <div class="container" aria-label="स्वतंत्रता दिवस विश और साझा पेज">
-    <img id="wishingImage" src="15 august independence day.png" alt="स्वतंत्रता दिवस शुभकामना" />
-    <div id="greetingSection" aria-live="polite"></div>
-
-    <div id="createWishSection">
-      <h2>BHARAT MATA KI JAY Share Karo</h2>
-      <div class="input-wrapper">
-        <input aria-label="अपना नाम लिखें" type="text" id="yourName" placeholder="Enter Your Name" />
-        <div id="feedback" role="alert" aria-atomic="true"></div>
-      </div>
-      <div class="share-row">
-        <button id="whatsappShareBtn" aria-label="व्हाट्सएप पर साझा करें">
-          <svg viewBox="0 0 24 24" fill="white" aria-hidden="true">
-            <path d="M16.75,13.96C17,14.26 17.11,14.85 16.96,15.54C16.82,16.23 15.82,16.82 15.06,17C14.31,17.17 13.35,16.96 12.33,16.5C10.97,15.91 9.94,15.04 9.06,14.16C8.18,13.28 7.3,12.25 6.74,10.89C6.18,9.53 6,8.57 6.17,7.82C6.34,7.07 6.93,6.07 7.23,5.82C7.53,5.57 7.92,5.54 8.22,5.54C8.52,5.54 8.76,5.54 8.97,5.78C9.18,6.02 9.45,6.56 9.59,6.78C9.73,7 9.77,7.14 9.67,7.38C9.57,7.62 9.43,7.8 9.24,8C9.05,8.2 8.91,8.34 9.05,8.61C9.19,8.88 9.63,9.66 10.42,10.45C11.21,11.24 11.99,11.68 12.26,11.82C12.53,11.96 12.67,11.91 12.86,11.72C13.05,11.53 13.24,11.29 13.48,11.15C13.72,11.01 13.86,11.05 14.1,11.15C14.34,11.25 15.3,11.74 15.52,11.88C15.74,12.02 15.88,12.09 15.93,12.23C15.98,12.37 15.93,12.61 15.73,12.81C15.53,13.01 15.24,13.25 14.88,13.61C14.52,13.97 14.28,14.21 14.42,14.51C14.56,14.81 15.06,15.2 15.2,15.34C15.34,15.48 16.5,13.7 16.75,13.96M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2Z"></path>
-          </svg>
-          Share Karo 
-        </button>
-      </div>
+    <div id="game-container">
+        <div id="withdrawal-container">💸 Withdrawal</div>
+        <div id="wallet-container">💳<span id="wallet-balance">₹0.00</span></div>
+        <h1>🚀 Aviator</h1>
+        <div id="game-screen">
+             <div id="airplane-container">🚀</div>
+             <div id="multiplier">1.00x</div>
+        </div>
+        <div id="controls">
+            <div class="betting-panel" data-panel-id="0"> <div class="quick-bet-container"> <button class="quick-bet-btn" data-amount="10">₹10</button> <button class="quick-bet-btn" data-amount="100">₹100</button> <button class="quick-bet-btn" data-amount="500">₹500</button> </div> <div class="control-row"><input type="number" class="bet-amount" value="10" min="1"></div> <button class="action-button bet-button">Place Your Bet</button> <button class="action-button cashout-button">Cash Out</button> <div class="panel-message"></div> </div>
+            <div class="betting-panel" data-panel-id="1"> <div class="quick-bet-container"> <button class="quick-bet-btn" data-amount="1000">₹1000</button> <button class="quick-bet-btn" data-amount="3000">₹3000</button> <button class="quick-bet-btn" data-amount="5000">₹5000</button> </div> <div class="control-row"><input type="number" class="bet-amount" value="10" min="1"></div> <button class="action-button bet-button">Place Your Bet</button> <button class="action-button cashout-button">Cash Out</button> <div class="panel-message"></div> </div>
+        </div>
+        <div id="pending-requests-container">
+            <ul id="requests-list"></ul>
+        </div>
     </div>
-  </div>
 
-  <div class="ad-container">
-    Advertisement Loading...
-    <script type="text/javascript">
-      atOptions = {
-        key: 'ba14d666034f2d955047d2778ac2015a',
-        format: 'iframe',
-        height: 60,
-        width: 468,
-        params: {}
-      };
+    <!-- Modals (Deposit, Withdrawal, QR Code) -->
+    <div id="deposit-modal" class="modal"> 
+        <div class="modal-content"> 
+            <span class="close-button" id="close-deposit-modal">&times;</span> 
+            <h2>Add Funds</h2> 
+            <p class="instruction"></p>
+            <input type="number" id="deposit-amount" placeholder="Enter Amount"> 
+            <div class="quick-deposit-container">  
+                <div class="quick-deposit-row"> <button class="quick-deposit-btn" data-amount="100">₹100</button> <button class="quick-deposit-btn" data-amount="200">₹200</button> <button class="quick-deposit-btn" data-amount="500">₹500</button> <button class="quick-deposit-btn" data-amount="1000">₹1000</button> </div> 
+                <div class="quick-deposit-row"> <button class="quick-deposit-btn" data-amount="2000">₹2000</button> <button class="quick-deposit-btn" data-amount="3000">₹3000</button> <button class="quick-deposit-btn" data-amount="5000">₹5000</button> <button class="quick-deposit-btn small-btn" data-amount="10000">₹10000</button> </div> 
+            </div> 
+            <button id="add-funds-btn" style="background-color: #28a745;">Add Amount</button> 
+        </div> 
+    </div>
+    <div id="withdrawal-modal" class="modal"> <div class="modal-content"> <span class="close-button" id="close-withdrawal-modal">&times;</span> <h2>Withdrawal</h2> <input type="number" id="withdrawal-amount" placeholder="Amount"> <input type="text" id="upi-id" placeholder="YOUR UPI ID"> <button id="process-withdrawal-btn" style="background-color: #007bff;">Withdrawal Now</button> <p id="withdrawal-message"></p> </div> </div>
+    <div id="qr-code-modal" class="modal"> <div class="modal-content"> <span class="close-button" id="close-qr-modal">&times;</span> <h2>Scan to Pay</h2> <p>Complete your payment of <strong id="qr-amount"></strong> using any UPI app.</p> <div id="qrcode"></div> <p style="margin-top: 15px; font-size: 14px; color: #aaa;">After payment, your request will be processed. You can close this window.</p> </div> </div>
+
+    <script>
+        // === FIREBASE CONFIGURATION ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6TJaaKB3was0JZsCbivLpO9f970ERbdA",
+            authDomain: "bodo-movie.firebaseapp.com",
+            databaseURL: "https://bodo-movie-default-rtdb.firebaseio.com",
+            projectId: "bodo-movie",
+            storageBucket: "bodo-movie.firebasestorage.app",
+            messagingSenderId: "637580228534",
+            appId: "1:637580228534:web:7993b9ff88a78d2df2f317"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        // ==============================
+
+        const multiplierDisplay = document.getElementById('multiplier'),
+              walletBalanceDisplay = document.getElementById('wallet-balance'),
+              gameScreen = document.getElementById('game-screen'),
+              airplaneContainer = document.getElementById('airplane-container'),
+              bettingPanels = document.querySelectorAll('.betting-panel');
+
+        const userId = "user123"; 
+
+        let gameState = "waiting", walletBalance = 0.00, multiplier = 1.00, gameInterval;
+        let bets = [ { amount: 0, cashedOut: false, cashedOutMultiplier: 0 }, { amount: 0, cashedOut: false, cashedOutMultiplier: 0 } ];
+        
+        const walletRef = database.ref(`users/${userId}/wallet`);
+        const requestsRef = database.ref(`users/${userId}/requests`);
+
+        walletRef.on('value', (snapshot) => {
+            const val = snapshot.val();
+            if (val === null) {
+                walletRef.set(0.00); 
+            } else {
+                walletBalance = parseFloat(val);
+                updateWalletDisplay();
+            }
+        });
+
+        requestsRef.orderByChild('timestamp').on('value', (snapshot) => {
+            const requests = [];
+            snapshot.forEach((childSnapshot) => {
+                requests.push({ id: childSnapshot.key, ...childSnapshot.val() });
+            });
+            renderPendingRequests(requests.reverse()); 
+        });
+
+        function updateWalletDisplay() {
+            walletBalanceDisplay.textContent = `₹${walletBalance.toFixed(2)}`;
+        }
+        
+        function resetVisuals() {
+            multiplier = 1.00; multiplierDisplay.style.color = "#ffffff"; multiplierDisplay.style.fontSize = "4em";
+            airplaneContainer.style.display = 'block'; airplaneContainer.style.transform = "rotate(0rad)";
+            airplaneContainer.style.bottom = "5px"; airplaneContainer.style.left = "10px";
+        }
+        
+        function gameCycle() {
+            resetVisuals(); gameState = "waiting";
+            bets.forEach((bet, index) => { bet.amount = 0; bet.cashedOut = false; bet.cashedOutMultiplier = 0; updatePanelUI(index, "waiting"); });
+            let countdown = 5; multiplierDisplay.style.fontSize = "1.5em"; multiplierDisplay.textContent = `Next round in ${countdown} second`;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) multiplierDisplay.textContent = `Next round in ${countdown} second`; else multiplierDisplay.textContent = ``;
+                if (countdown <= 0) { clearInterval(countdownInterval); startFlight(); }
+            }, 1000);
+        }
+        
+        function startFlight() {
+            gameState = "running"; multiplierDisplay.style.fontSize = "4em";
+            bets.forEach((bet, index) => { if (bet.amount > 0) updatePanelUI(index, "running"); });
+            let x = 10; let screenWidth = gameScreen.clientWidth; let screenHeight = gameScreen.clientHeight;
+            gameInterval = setInterval(() => {
+                multiplier += 0.01 + .02 * (multiplier - 1); multiplierDisplay.textContent = `${multiplier.toFixed(2)}x`; x += 1.5;
+                let y = ((screenHeight - 100) / (screenWidth * screenWidth)) * x * x + 5;
+                airplaneContainer.style.left = `${x}px`; airplaneContainer.style.bottom = `${y}px`;
+                bets.forEach((bet, index) => { if (bet.amount > 0 && !bet.cashedOut) { bettingPanels[index].querySelector('.cashout-button').textContent = `Cash Out ₹${(bet.amount * multiplier).toFixed(2)}`; } });
+                if (Math.random() < 0.005 || x > screenWidth - 50) crashGame();
+            }, 50);
+        }
+        
+        function crashGame() {
+            clearInterval(gameInterval); gameState = "crashed"; airplaneContainer.style.display = 'none'; 
+            multiplierDisplay.textContent = "Flew Away"; multiplierDisplay.style.color = "#e63946";
+            bets.forEach((bet, index) => {
+                if (bet.amount > 0 && !bet.cashedOut) updatePanelUI(index, "lost");
+                else if (bet.amount > 0 && bet.cashedOut) updatePanelUI(index, "won");
+            });
+            setTimeout(gameCycle, 3000);
+        }
+        
+        function updatePanelUI(index, state) {
+            const panel = bettingPanels[index], betButton = panel.querySelector('.bet-button'), cashoutButton = panel.querySelector('.cashout-button'), input = panel.querySelector('.bet-amount'), quickBtns = panel.querySelectorAll('.quick-bet-btn'), message = panel.querySelector('.panel-message');
+            switch(state) {
+                case "waiting": betButton.style.display = 'block'; cashoutButton.style.display = 'none'; betButton.disabled = false; input.disabled = false; quickBtns.forEach(b => b.disabled = false); message.textContent = ""; break;
+                case "bet_placed": betButton.disabled = true; input.disabled = true; quickBtns.forEach(b => b.disabled = true); message.textContent = ""; break;
+                case "running": betButton.style.display = 'none'; cashoutButton.style.display = 'block'; cashoutButton.disabled = false; message.textContent = ""; break; 
+                case "cashed_out": cashoutButton.disabled = true; message.textContent = `₹${(bets[index].amount * bets[index].cashedOutMultiplier).toFixed(2)} You Win`; break;
+                case "lost": betButton.style.display = 'block'; cashoutButton.style.display = 'none'; message.textContent = `You ₹${bets[index].amount} Lost`; break;
+                case "won": betButton.style.display = 'block'; cashoutButton.style.display = 'none'; message.textContent = `₹${(bets[index].amount * bets[index].cashedOutMultiplier).toFixed(2)} पर जीते!`; break;
+            }
+        }
+        
+        bettingPanels.forEach((panel, index) => {
+            const betButton = panel.querySelector('.bet-button'), cashoutButton = panel.querySelector('.cashout-button'), input = panel.querySelector('.bet-amount'), quickBtns = panel.querySelectorAll('.quick-bet-btn');
+            quickBtns.forEach(button => button.addEventListener('click', () => { input.value = button.dataset.amount; }));
+            
+            betButton.addEventListener("click", () => {
+                if (gameState !== "waiting" || bets[index].amount > 0) return;
+                const betValue = parseFloat(input.value);
+                if (isNaN(betValue) || betValue <= 0) {
+                    alert("कृपया एक वैध बेट राशि डालें।");
+                    return;
+                }
+                if (walletBalance < betValue) {
+                    alert("आपके खाते में पर्याप्त बैलेंस नहीं है। कृपया खेलने के लिए राशि जमा करें।");
+                    return;
+                }
+                walletRef.set(walletBalance - betValue); 
+                bets[index].amount = betValue; 
+                updatePanelUI(index, "bet_placed");
+            });
+
+            cashoutButton.addEventListener("click", () => {
+                if (gameState === "running" && bets[index].amount > 0 && !bets[index].cashedOut) {
+                    bets[index].cashedOut = true; bets[index].cashedOutMultiplier = multiplier;
+                    const winnings = bets[index].amount * multiplier;
+                    walletRef.set(walletBalance + winnings);
+                    updatePanelUI(index, "cashed_out");
+                }
+            });
+        });
+
+        const requestsList = document.getElementById('requests-list');
+        function renderPendingRequests(pendingRequests) {
+            requestsList.innerHTML = '';
+            if (!pendingRequests || pendingRequests.length === 0) { 
+                requestsList.innerHTML = '<p style="text-align:center; font-size:12px; color:#aaa;">कोई लंबित अनुरोध नहीं है</p>';
+                return; 
+            }
+            pendingRequests.forEach(request => {
+                const li = document.createElement('li');
+                li.className = 'request-item';
+                let detailsHTML = '';
+                if (request.type === 'deposit') {
+                    detailsHTML = `<span class="request-type deposit">DEPOSIT</span> <span><strong>₹${request.amount.toFixed(2)}</span>`;
+                } else { // This will now handle withdrawal
+                    detailsHTML = `<span class="request-type withdrawal">WITHDRAWAL</span> <span><strong>₹${request.amount.toFixed(2)}</strong> to ${request.upiId}</span>`;
+                }
+                li.innerHTML = `<div class="request-details">${detailsHTML}</div> <div class="request-status">${request.status || 'Pending'}</div>`;
+                requestsList.appendChild(li);
+            });
+        }
+
+        window.onload = () => {
+            gameCycle(); 
+
+            const myUpiId = "your-actual-upi-id@ybl"; 
+
+            const depositModal = document.getElementById('deposit-modal');
+            const withdrawalModal = document.getElementById('withdrawal-modal');
+            const qrCodeModal = document.getElementById('qr-code-modal');
+            const walletBtn = document.getElementById('wallet-container');
+            const withdrawalBtn = document.getElementById('withdrawal-container');
+            const closeDepositBtn = document.getElementById('close-deposit-modal');
+            const closeWithdrawalBtn = document.getElementById('close-withdrawal-modal');
+            const closeQrBtn = document.getElementById('close-qr-modal');
+            const addFundsBtn = document.getElementById('add-funds-btn');
+            const depositAmountInput = document.getElementById('deposit-amount');
+            const qrCodeContainer = document.getElementById('qrcode');
+            const qrAmountDisplay = document.getElementById('qr-amount');
+            
+            const processWithdrawalBtn = document.getElementById('process-withdrawal-btn');
+            const withdrawalAmountInput = document.getElementById('withdrawal-amount');
+            const userUpiIdInput = document.getElementById('upi-id');
+            const withdrawalMessage = document.getElementById('withdrawal-message');
+
+            walletBtn.addEventListener('click', () => { depositModal.style.display = 'block'; });
+            withdrawalBtn.addEventListener('click', () => { 
+                withdrawalMessage.textContent = '';
+                withdrawalModal.style.display = 'block'; 
+            });
+
+            closeDepositBtn.addEventListener('click', () => { depositModal.style.display = 'none'; });
+            closeWithdrawalBtn.addEventListener('click', () => { withdrawalModal.style.display = 'none'; });
+            closeQrBtn.addEventListener('click', () => { qrCodeModal.style.display = 'none'; });
+            
+            window.addEventListener('click', (event) => {
+                if (event.target == depositModal) depositModal.style.display = 'none';
+                if (event.target == withdrawalModal) withdrawalModal.style.display = 'none';
+                if (event.target == qrCodeModal) qrCodeModal.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.quick-deposit-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    depositAmountInput.value = e.target.dataset.amount;
+                });
+            });
+
+            addFundsBtn.addEventListener('click', () => {
+                const amount = parseFloat(depositAmountInput.value);
+                if (isNaN(amount) || amount <= 0) {
+                    alert("Please enter a valid amount");
+                    return;
+                }
+
+                const newRequestRef = requestsRef.push();
+                newRequestRef.set({
+                    amount: amount,
+                    type: 'deposit',
+                    status: 'Pending',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                const upiString = `https://cdn0030.qrcodechimp.com/qr/PROD/68935c68903938335e7424db/fm/img_20250806_191623.png?v=1754488046091`;
+                
+                qrCodeContainer.innerHTML = '';
+                new QRCode(qrCodeContainer, { text: upiString, width: 200, height: 200 });
+                qrAmountDisplay.textContent = `₹${amount.toFixed(2)}`;
+                depositModal.style.display = 'none';
+                qrCodeModal.style.display = 'block';
+            });
+            
+            processWithdrawalBtn.addEventListener('click', () => {
+                const amount = parseFloat(withdrawalAmountInput.value);
+                const upiId = userUpiIdInput.value.trim();
+
+                if (isNaN(amount) || amount <= 0) {
+                    alert("Please enter a valid amount to withdraw");
+                    return;
+                }
+                if (upiId === "") {
+                    alert("कृपया अपनी UPI ID डालें।");
+                    return;
+                }
+                if (amount > walletBalance) {
+                    alert("आपके खाते में अपर्याप्त बैलेंस है।");
+                    return;
+                }
+                
+                const newRequestRef = requestsRef.push();
+                newRequestRef.set({
+                    amount: amount,
+                    upiId: upiId,
+                    type: 'withdrawal',
+                    status: 'Pending',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).then(() => {
+                    walletRef.set(walletBalance - amount);
+                    withdrawalMessage.textContent = "Your withdrawal request has been successfully sent";
+                    withdrawalAmountInput.value = '';
+                    userUpiIdInput.value = '';
+                    setTimeout(() => {
+                        withdrawalModal.style.display = 'none';
+                    }, 3000);
+                }).catch((error) => {
+                    console.error("अनुरोध भेजने में त्रुटि हुई:", error);
+                    alert("अनुरोध भेजने में कोई त्रुटि हुई। कृपया पुनः प्रयास करें।");
+                });
+            });
+        };
     </script>
-    <script type="text/javascript" src="https://www.highperformanceformat.com/ba14d666034f2d955047d2778ac2015a/invoke.js"></script>
-  </div>
-
-  <div id="audioFallback" aria-label="म्यूजिक कंट्रोल">
-    <audio id="bgAudio" loop>
-      <source src="https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3" type="audio/mpeg" />
-    </audio>
-    <div id="audioNotice" style="font-size:0.9rem; color:rgba(255,255,255,0.85);">
-      अगर संगीत स्वतः नहीं चला, तो नीचे दबाएँ:
-    </div>
-    <button id="playAudioBtn" aria-label="संगीत चलाएँ">🎵 संगीत चलाएँ</button>
-  </div>
-
-  <noscript>
-    <div style="position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; color:white; padding:20px; z-index:99;">
-      JavaScript बंद है। आप संदेश देखने के लिए कृपया JavaScript सक्षम करें।
-    </div>
-  </noscript>
-
-  <script>
-    // === Fireworks with pause on hidden tab ===
-    const canvas = document.getElementById('fireworks-canvas');
-    const ctx = canvas.getContext('2d');
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    let particles = [];
-    let fireworks = [];
-    let animationActive = true;
-
-    function Firework(x, y, color) {
-      this.x = x;
-      this.y = y;
-      this.color = color;
-      this.vel = { x: 0, y: Math.random() * -3 - 8 };
-      this.done = false;
-      this.update = function () {
-        this.y += this.vel.y;
-        if (this.y < Math.random() * 200 + 50) {
-          this.done = true;
-          for (let i = 0; i < 50; i++) {
-            particles.push(new Particle(this.x, this.y, this.color));
-          }
-        }
-      };
-      this.draw = function () {
-        ctx.beginPath();
-        ctx.fillStyle = this.color;
-        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-      };
-    }
-
-    function Particle(x, y, color) {
-      this.x = x;
-      this.y = y;
-      this.color = color;
-      this.vel = {
-        x: (Math.random() - 0.5) * 10,
-        y: (Math.random() - 0.5) * 10
-      };
-      this.alpha = 1;
-      this.update = function () {
-        this.x += this.vel.x;
-        this.y += this.vel.y;
-        this.alpha -= 0.02;
-      };
-      this.draw = function () {
-        ctx.globalAlpha = this.alpha;
-        ctx.beginPath();
-        ctx.fillStyle = this.color;
-        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      };
-    }
-
-    function animate() {
-      if (!animationActive) {
-        requestAnimationFrame(animate);
-        return;
-      }
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      if (Math.random() < 0.12) {
-        const colors = ['#FF9933', '#FFFFFF', '#138808'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        fireworks.push(new Firework(Math.random() * canvas.width, canvas.height, randomColor));
-      }
-      fireworks = fireworks.filter(f => !f.done);
-      fireworks.forEach(f => {
-        f.update();
-        f.draw();
-      });
-      particles = particles.filter(p => p.alpha > 0);
-      particles.forEach(p => {
-        p.update();
-        p.draw();
-      });
-      requestAnimationFrame(animate);
-    }
-    animate();
-
-    document.addEventListener('visibilitychange', () => {
-      animationActive = !document.hidden;
-    });
-
-    // === Greeting / URL param ===
-    window.addEventListener('DOMContentLoaded', () => {
-      const url = new URL(window.location);
-      const nameFromUrl = url.searchParams.get('from');
-      const greetingSection = document.getElementById('greetingSection');
-      if (nameFromUrl) {
-        const senderName = decodeURIComponent(nameFromUrl);
-        greetingSection.innerHTML = `<h1><span id="senderName">${senderName} On Behalf Of" / "From"</span>15 August</h1><p>Independence Day</p>`;
-      } else {
-        greetingSection.innerHTML = `<h1>15 August</h1><p>Independence Day</p>`;
-      }
-    });
-
-    // === Share logic ===
-    const whatsappBtn = document.getElementById('whatsappShareBtn');
-    const feedbackEl = document.getElementById('feedback');
-
-    function buildShareUrl(nameInput) {
-      const url = new URL(window.location);
-      url.searchParams.set('from', encodeURIComponent(nameInput));
-      return url.toString();
-    }
-
-    whatsappBtn.addEventListener('click', async () => {
-      const nameInput = document.getElementById('yourName').value.trim();
-      feedbackEl.textContent = '';
-      if (nameInput === '') {
-        feedbackEl.textContent = 'Please Enter Your Name';
-        return;
-      }
-      const newUrl = buildShareUrl(nameInput);
-      const shareText = `${nameInput} Has Sent You Independence Day Greetings!  Click To View:`;
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'स्वतंत्रता दिवस की शुभकामनाएँ!',
-            text: shareText,
-            url: newUrl
-          });
-        } catch (err) {
-          console.log('User cancelled share:', err?.message || err);
-        }
-      } else {
-        const fullMessage = encodeURIComponent(`${shareText} ${newUrl}`);
-        const whatsappUrl = `https://wa.me/?text=${fullMessage}`;
-        window.open(whatsappUrl, '_blank', 'noopener');
-      }
-    });
-
-    // === Audio fallback ===
-    const audio = document.getElementById('bgAudio');
-    const playBtn = document.getElementById('playAudioBtn');
-    const audioNotice = document.getElementById('audioNotice');
-
-    function tryPlayAudio() {
-      audio.play().catch(() => {
-        audioNotice.textContent = 'स्वतः संगीत नहीं चल पाया। नीचे से शुरू करें:';
-      });
-    }
-
-    window.addEventListener('load', () => {
-      tryPlayAudio();
-    });
-
-    playBtn.addEventListener('click', () => {
-      audio.play();
-    });
-  </script>
 </body>
 </html>
